@@ -105,57 +105,38 @@ local function fly_to(key)
    local cur_pos = vim.api.nvim_win_get_cursor(0)
    local cur_line = cur_pos[1]
    local cur_col = cur_pos[2]
-   local close_pairs = { "}", ")", "]", '"', "''" }
 
    -- Find current line position
    local current_line = vim.api.nvim_get_current_line()
    local after_cursor = current_line:sub(cur_col + 1)
-   local first_pos = math.huge
 
-   -- Check current line first
-   for _, bracket in ipairs(close_pairs) do
-      local pos = after_cursor:find(vim.pesc(bracket))
-      if pos and pos < first_pos then
-         first_pos = pos
-      end
-   end
-
-   -- Check if the first closing bracket matches the key in current line
-   if
-      first_pos ~= math.huge
-      and after_cursor:sub(first_pos, first_pos) == key
-   then
-      -- Move to the position in current line
-      return "<ESC>:call cursor("
-         .. cur_line
-         .. ", "
-         .. (first_pos + cur_col)
-         .. ")<CR>a"
-   end
-
-   -- If not found in current line, check next line
-   local next_line =
-      vim.api.nvim_buf_get_lines(0, cur_line, cur_line + 1, true)[1]
-   if next_line then
-      first_pos = math.huge
-      -- Find first bracket in next line
-      for _, bracket in ipairs(close_pairs) do
-         local pos = next_line:find(vim.pesc(bracket))
-         if pos and pos < first_pos then
-            first_pos = pos
-         end
-      end
-
-      -- Check if the first closing bracket matches the key in next line
-      if
-         first_pos ~= math.huge
-         and next_line:sub(first_pos, first_pos) == key
-      then
+   -- Check current line
+   local first_close = after_cursor:match('[][})"]')
+   if first_close then
+      local pos = after_cursor:find('[][})"]')
+      if first_close == key then
          return "<ESC>:call cursor("
-            .. (cur_line + 1)
+            .. cur_line
             .. ", "
-            .. first_pos
+            .. (pos + cur_col)
             .. ")<CR>a"
+      end
+   end
+
+   -- Check next line
+   local next_line =
+      vim.api.nvim_buf_get_lines(0, cur_line, cur_line + 1, false)[1]
+   if next_line then
+      first_close = next_line:match('[][})"]')
+      if first_close then
+         local pos = next_line:find('[][})"]')
+         if first_close == key then
+            return "<ESC>:call cursor("
+               .. (cur_line + 1)
+               .. ", "
+               .. pos
+               .. ")<CR>a"
+         end
       end
    end
 
