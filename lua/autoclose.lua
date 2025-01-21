@@ -73,12 +73,19 @@ local function is_disabled(info)
       end
    end
 
-   if info["enabled_filetypes"] ~= nil then
-      for _, filetype in pairs(info.enabled_filetypes) do
-         if filetype == current_filetype then
+   if info.enabled_filetypes ~= nil then
+      if type(info.enabled_filetypes) == "string" then
+         if info.enabled_filetypes == current_filetype then
             return false
          end
+      elseif type(info.enabled_filetypes) == "table" then
+         for _, filetype in pairs(info.enabled_filetypes) do
+            if filetype == current_filetype then
+               return false
+            end
+         end
       end
+
       return true
    end
 
@@ -131,6 +138,19 @@ local function fly_to(key)
    return key
 end
 
+local function get_current_node()
+   local node = vim.treesitter.get_node():parent()
+   if node then
+      -- Node type
+      local node_type = node:type()
+      -- Node text
+      local text = vim.treesitter.get_node_text(node, 0)
+      return node, node_type
+   end
+
+   return nil
+end
+
 local function handler(key, info, mode)
    if is_disabled(info) then
       return key
@@ -165,6 +185,12 @@ local function handler(key, info, mode)
          )
       then
          return key
+      end
+
+      -- TODO:
+      if info.ts_node ~= nil then
+         for _, value in ipairs(info.ts_node) do
+         end
       end
 
       return info.pair .. (mode == "insert" and "<C-G>U<Left>" or "<Left>")
