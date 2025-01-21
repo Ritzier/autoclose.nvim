@@ -100,68 +100,32 @@ local function is_disabled(info)
    return false
 end
 
--- local function fly_to(key)
---    -- Cursor position
---    local cur_pos = vim.api.nvim_win_get_cursor(0)
---    local cur_line = cur_pos[1]
---    local cur_col = cur_pos[2]
---
---    -- Find current line position
---    local current_line = vim.api.nvim_get_current_line()
---    local after_cursor = current_line:sub(cur_col + 1)
---    local key_pos = after_cursor:find(key)
---
---    if key_pos then
---       -- Same line movement
---       key_pos = key_pos + cur_col
---       return "<ESC>:call cursor(" .. cur_line .. ", " .. key_pos .. ")<CR>a"
---    end
---
---    -- Find next line key position
---    local remaining_line = vim.api.nvim_buf_line_count(0) - cur_line
---    for i = 1, remaining_line do
---       local line =
---          vim.api.nvim_buf_get_lines(0, cur_line + i - 1, cur_line + i, true)[1]
---       if line then
---          local key_pos_1 = line:find(key)
---          if key_pos_1 then
---             -- Move to specific line and column
---             return "<ESC>:call cursor("
---                .. (cur_line + i)
---                .. ", "
---                .. key_pos_1
---                .. ")<CR>a"
---          end
---       end
---    end
---
---    return key
--- end
-
 local function fly_to(key)
    -- Cursor position
    local cur_pos = vim.api.nvim_win_get_cursor(0)
    local cur_line = cur_pos[1]
    local cur_col = cur_pos[2]
-   local close_pairs = { "}", ")", "]", '"' }
+   local close_pairs = { "}", ")", "]", '"', "''" }
 
    -- Find current line position
    local current_line = vim.api.nvim_get_current_line()
    local after_cursor = current_line:sub(cur_col + 1)
-
-   -- Find first bracket position in current line
    local first_pos = math.huge
-   local first_key = nil
+
+   -- Check current line first
    for _, bracket in ipairs(close_pairs) do
       local pos = after_cursor:find(vim.pesc(bracket))
       if pos and pos < first_pos then
          first_pos = pos
-         first_key = bracket
       end
    end
 
-   -- If key is the first bracket in current line
-   if first_key == key and first_pos ~= math.huge then
+   -- Check if the first closing bracket matches the key in current line
+   if
+      first_pos ~= math.huge
+      and after_cursor:sub(first_pos, first_pos) == key
+   then
+      -- Move to the position in current line
       return "<ESC>:call cursor("
          .. cur_line
          .. ", "
@@ -169,31 +133,29 @@ local function fly_to(key)
          .. ")<CR>a"
    end
 
-   -- Find next line key position
-   local remaining_line = vim.api.nvim_buf_line_count(0) - cur_line
-   for i = 1, remaining_line do
-      local line =
-         vim.api.nvim_buf_get_lines(0, cur_line + i - 1, cur_line + i, true)[1]
-      if line then
-         -- Find first bracket in next line
-         local next_first_pos = math.huge
-         local next_first_key = nil
-         for _, bracket in ipairs(close_pairs) do
-            local pos = line:find(vim.pesc(bracket))
-            if pos and pos < next_first_pos then
-               next_first_pos = pos
-               next_first_key = bracket
-            end
+   -- If not found in current line, check next line
+   local next_line =
+      vim.api.nvim_buf_get_lines(0, cur_line, cur_line + 1, true)[1]
+   if next_line then
+      first_pos = math.huge
+      -- Find first bracket in next line
+      for _, bracket in ipairs(close_pairs) do
+         local pos = next_line:find(vim.pesc(bracket))
+         if pos and pos < first_pos then
+            first_pos = pos
          end
+      end
 
-         -- If key is the first bracket in next line
-         if next_first_key == key and next_first_pos ~= math.huge then
-            return "<ESC>:call cursor("
-               .. (cur_line + i)
-               .. ", "
-               .. next_first_pos
-               .. ")<CR>a"
-         end
+      -- Check if the first closing bracket matches the key in next line
+      if
+         first_pos ~= math.huge
+         and next_line:sub(first_pos, first_pos) == key
+      then
+         return "<ESC>:call cursor("
+            .. (cur_line + 1)
+            .. ", "
+            .. first_pos
+            .. ")<CR>a"
       end
    end
 
