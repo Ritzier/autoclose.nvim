@@ -163,14 +163,23 @@ local function handler(key, info, mode)
 
    local pair = mode == "insert" and insert_get_pair() or command_get_pair()
 
+   -- Action: delete
    if (key == "<BS>" or key == "<C-H>" or key == "<C-W>") and is_pair(pair) then
       return "<BS><Del>"
+
+   -- Action: insert with new line
    elseif mode == "insert" and key == "<CR>" and is_pair(pair) then
       return "<CR><ESC>O" .. (config.options.auto_indent and "" or "<C-D>")
+
+   -- Action: fly mode
    elseif info.escape and info.fly then
       return fly_to(key)
+
+   -- Action: move out
    elseif info.escape and pair:sub(2, 2) == key then
       return mode == "insert" and "<C-G>U<Right>" or "<Right>"
+
+   -- Action: add pair
    elseif info.close then
       -- disable if the cursor touches alphanumeric character
       if
