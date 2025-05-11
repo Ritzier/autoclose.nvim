@@ -146,11 +146,8 @@ end
 local function get_current_node()
    local node = vim.treesitter.get_node():parent()
    if node then
-      -- Node type
       local node_type = node:type()
-      -- Node text
-      local text = vim.treesitter.get_node_text(node, 0)
-      return node, node_type
+      return node_type
    end
 
    return nil
@@ -201,9 +198,16 @@ local function handler(key, info, mode)
          return key
       end
 
-      -- TODO:
+      -- If ts_node provided in configuration, dont pair it
       if info.ts_node ~= nil then
-         for _, value in ipairs(info.ts_node) do
+         -- Get current node
+         local current_node = get_current_node()
+
+         -- Equal with info.ts_node
+         for _, v in ipairs(info.ts_node) do
+            if v == current_node then
+               return key
+            end
          end
       end
 
