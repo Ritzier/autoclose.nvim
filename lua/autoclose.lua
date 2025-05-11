@@ -143,22 +143,36 @@ local function fly_to(key)
    return key
 end
 
-local function get_current_node()
-   local node = vim.treesitter.get_node():parent()
-   if node then
-      local node_type = node:type()
-      return node_type
-   end
-
-   return nil
-end
-
 local function handler(key, info, mode)
    if is_disabled(info) then
       return key
    end
 
    local pair = mode == "insert" and insert_get_pair() or command_get_pair()
+
+   if info.escape then
+      if vim.bo.filetype == "rust" and key == ">" then
+         if pair:sub(1, 1) ~= "/" then -- Fixed condition (removed extra 'not')
+            local node = vim.treesitter.get_node()
+            if node then
+               local current_type = node:type()
+               local parent_type = node:parent() and node:parent():type() or ""
+
+               if parent_type == "ERROR" and current_type == "open_tag" then
+                  local tag_text = vim.treesitter.get_node_text(node, 0)
+                  local tag_name = tag_text and tag_text:match("^<%s*(%w+)")
+                     or ""
+
+                  if tag_name ~= "" then
+                     return "></"
+                        .. tag_name
+                        .. string.rep("<Left>", tag_name:len() + 2)
+                  end
+               end
+            end
+         end
+      end
+   end
 
    -- Action: delete
    if (key == "<BS>" or key == "<C-H>" or key == "<C-W>") and is_pair(pair) then
@@ -168,13 +182,13 @@ local function handler(key, info, mode)
    elseif mode == "insert" and key == "<CR>" and is_pair(pair) then
       return "<CR><ESC>O" .. (config.options.auto_indent and "" or "<C-D>")
 
-   -- Action: fly mode
-   elseif info.escape and info.fly then
-      return fly_to(key)
-
    -- Action: move out
    elseif info.escape and pair:sub(2, 2) == key then
       return mode == "insert" and "<C-G>U<Right>" or "<Right>"
+
+      -- Action: fly mode
+   elseif info.escape and info.fly then
+      return fly_to(key)
 
    -- Action: add pair
    elseif info.close then
@@ -196,19 +210,6 @@ local function handler(key, info, mode)
          )
       then
          return key
-      end
-
-      -- If ts_node provided in configuration, dont pair it
-      if info.ts_node ~= nil then
-         -- Get current node
-         local current_node = get_current_node()
-
-         -- Equal with info.ts_node
-         for _, v in ipairs(info.ts_node) do
-            if v == current_node then
-               return key
-            end
-         end
       end
 
       return info.pair .. (mode == "insert" and "<C-G>U<Left>" or "<Left>")
