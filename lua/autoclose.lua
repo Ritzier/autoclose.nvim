@@ -191,8 +191,8 @@ local function handler(key, info, mode)
       end
    end
 
-   -- Triple ` for markdown
    if vim.bo.filetype == "markdown" then
+      -- Triple ` for markdown
       if key == "`" then
          local last3 = get_chars(-2) .. key
          if last3 == "```" then
@@ -200,6 +200,7 @@ local function handler(key, info, mode)
          end
       end
 
+      -- New line for triple `
       if key == "<CR>" and get_chars(3) == "```" then
          return "<CR><ESC>O" .. (config.options.auto_indent and "" or "<C-D>")
       end
