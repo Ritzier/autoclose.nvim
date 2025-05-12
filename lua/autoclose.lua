@@ -147,6 +147,12 @@ local function fly_to(key)
    return key
 end
 
+local function get_last_chars(n)
+   local line = vim.api.nvim_get_current_line()
+   local col = vim.api.nvim_win_get_cursor(0)[2]
+   return line:sub(col - n + 1, col)
+end
+
 local function handler(key, info, mode)
    if is_disabled(info) then
       return key
@@ -174,6 +180,16 @@ local function handler(key, info, mode)
                   end
                end
             end
+         end
+      end
+   end
+
+   -- Triple ` for markdown
+   if vim.bo.filetype == "markdown" then
+      if key == "`" then
+         local last3 = get_last_chars(2) .. key
+         if last3 == "```" then
+            return "````<Left><Left><Left>"
          end
       end
    end
