@@ -30,6 +30,10 @@ local config = {
       auto_indent = true,
       disable_command_mode = false,
    },
+   tabout = {
+      forward = "<C-tab>",
+      backward = "<C-S-tab>",
+   },
    disabled = false,
 }
 
@@ -247,6 +251,26 @@ function autoclose.setup(user_config)
                .. handler(key, info, "command")
          end, { noremap = true, expr = true, silent = true })
       end
+   end
+
+   -- TODO:
+   if config.tabout.forward ~= nil then
+      vim.keymap.set(
+         { "n", "i" },
+         config.tabout.forward,
+         function() end,
+         { noremap = true }
+      )
+   end
+
+   -- TODO:
+   if config.tabout.backward ~= nil then
+      vim.keymap.set(
+         { "n", "i" },
+         config.tabout.backward,
+         function() end,
+         { noremap = true }
+      )
    end
 end
 
