@@ -167,8 +167,10 @@ local function handler(key, info, mode)
 
    local pair = mode == "insert" and insert_get_pair() or command_get_pair()
 
-   if info.escape then
-      if vim.bo.filetype == "rust" and key == ">" then
+   -- Rust
+   if vim.bo.filetype == "rust" then
+      -- Rust rstml autotag
+      if info.escape and key == ">" then
          if pair:sub(1, 1) ~= "/" then -- Fixed condition (removed extra 'not')
             local node = vim.treesitter.get_node()
             if node then
@@ -188,6 +190,11 @@ local function handler(key, info, mode)
                end
             end
          end
+      end
+
+      -- Newline
+      if key == "<CR>" and get_chars(-1) == ">" and get_chars(2) == "</" then
+         return "<CR><ESC>O" .. (config.options.auto_indent and "" or "<C-D>")
       end
    end
 
