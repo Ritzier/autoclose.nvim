@@ -236,7 +236,7 @@ function autoclose.setup(user_config)
    for key, info in pairs(config.keys) do
       vim.keymap.set("i", key, function()
          return (key == " " and "<C-]>" or "") .. handler(key, info, "insert")
-      end, { noremap = true, expr = true })
+      end, { noremap = true, expr = true, silent = true })
 
       if
          not config.options.disable_command_mode
@@ -245,7 +245,7 @@ function autoclose.setup(user_config)
          vim.keymap.set("c", key, function()
             return (key == " " and "<C-]>" or "")
                .. handler(key, info, "command")
-         end, { noremap = true, expr = true })
+         end, { noremap = true, expr = true, silent = true })
       end
    end
 end
