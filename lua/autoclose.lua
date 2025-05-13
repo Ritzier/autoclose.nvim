@@ -160,6 +160,16 @@ local function get_chars(n)
    end
 end
 
+local function is_node_in(node, text)
+   while node ~= nil do
+      if node:type() == text then
+         return true
+      end
+      node = node:parent()
+   end
+   return false
+end
+
 local function handler(key, info, mode)
    if is_disabled(info) then
       return key
@@ -171,28 +181,27 @@ local function handler(key, info, mode)
    if vim.bo.filetype == "rust" then
       -- Rust rstml autotag
       if info.escape and key == ">" then
-         if pair:sub(1, 1) ~= "/" then -- Fixed condition (removed extra 'not')
-            local node = vim.treesitter.get_node()
-            if node then
-               local current_type = node:type()
-               local parent_type = node:parent() and node:parent():type() or ""
+         -- If node in `macro_invocation`
+         local node = vim.treesitter.get_node()
 
-               if parent_type == "ERROR" and current_type == "open_tag" then
-                  local tag_text = vim.treesitter.get_node_text(node, 0)
-                  local tag_name = tag_text and tag_text:match("^<%s*(%w+)")
-                     or ""
+         if node ~= nil then
+            if is_node_in(node, "macro_invocation") then
+               -- If tag not close with `/`
+               if pair:sub(1, 1) ~= "/" then
+                  -- Get current node text
+                  local text = vim.treesitter.get_node_text(node, 0)
 
-                  if tag_name ~= "" then
-                     return "></"
-                        .. tag_name
-                        .. string.rep("<Left>", tag_name:len() + 2)
+                  -- Parse text to get the tag
+                  local tag = text:match("<%s*(%w+)")
+
+                  if tag ~= nil then
+                     return "></" .. tag .. string.rep("<Left>", tag:len() + 2)
                   end
                end
             end
          end
       end
 
-      -- Newline
       if key == "<CR>" and get_chars(-1) == ">" and get_chars(2) == "</" then
          return "<CR><ESC>O" .. (config.options.auto_indent and "" or "<C-D>")
       end
