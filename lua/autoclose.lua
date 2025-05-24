@@ -174,40 +174,38 @@ local function handler(key, info, mode)
          local node = vim.treesitter.get_node()
 
          if node ~= nil then
-            local current_text = vim.treesitter.get_node_text(node, 0)
-
+            -- if `open_tag`, return fly + close tag
             if node:type() == "open_tag" then
+               local current_text = vim.treesitter.get_node_text(node, 0)
+               local current_tag = current_text:match("<%s*(%w+)")
+
+               -- check `sibling_node`
                local sibling_node = node:next_sibling()
                if sibling_node ~= nil then
+                  -- if sibling == `close_tag`, check does the close tag is == open_tag
                   local sibling_type = sibling_node:type()
-                  if sibling_type ~= "close_tag" then
-                     local text = vim.treesitter.get_node_text(node, 0)
-                     local tag = text:match("<%s*(%w+)")
-                     return fly_to(">")
-                        .. "</"
-                        .. tag
-                        .. ">"
-                        .. string.rep("<Left>", tag:len() + 3)
-                  elseif sibling_type == "close_tag" then
-                     local text = vim.treesitter.get_node_text(node, 0)
-                     local tag = text:match("<%s*(%w+)")
+                  if sibling_type == "close_tag" then
                      -- sibling
                      local sibling_text =
                         vim.treesitter.get_node_text(sibling_node, 0)
                      local sibling_tag = sibling_text:match("</%s*(%w+)")
-                     if tag ~= sibling_tag then
+                     if current_tag ~= sibling_tag then
                         return fly_to(">")
                            .. "</"
-                           .. tag
+                           .. current_tag
                            .. ">"
-                           .. string.rep("<Left>", tag:len() + 3)
+                           .. string.rep("<Left>", current_tag:len() + 3)
                      end
                   end
                end
+               return fly_to(">")
+                  .. "</"
+                  .. current_tag
+                  .. ">"
+                  .. string.rep("<Left>", current_tag:len() + 3)
             end
+            return fly_to(">")
          end
-
-         return fly_to(">")
       end
 
       if key == "<CR>" and get_chars(-1) == ">" and get_chars(2) == "</" then
