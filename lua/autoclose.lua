@@ -105,6 +105,8 @@ local function is_disabled(info)
 end
 
 local function fly_to(key)
+   local pesc_key = key
+
    -- Cursor position
    local cur_pos = vim.api.nvim_win_get_cursor(0)
    local cur_line = cur_pos[1]
@@ -115,9 +117,9 @@ local function fly_to(key)
    local after_cursor = current_line:sub(cur_col + 1)
 
    -- Check current line
-   local first_close = after_cursor:match('[][})"]')
+   local first_close = after_cursor:match(pesc_key)
    if first_close then
-      local pos = after_cursor:find('[][})"]')
+      local pos = after_cursor:find(pesc_key)
       if first_close == key then
          return "<ESC>:call cursor("
             .. cur_line
@@ -131,9 +133,9 @@ local function fly_to(key)
    local next_line =
       vim.api.nvim_buf_get_lines(0, cur_line, cur_line + 1, false)[1]
    if next_line then
-      first_close = next_line:match('[][})"]')
+      first_close = next_line:match(pesc_key)
       if first_close then
-         local pos = next_line:find('[][})"]')
+         local pos = next_line:find(pesc_key)
          if first_close == key then
             return "<ESC>:call cursor("
                .. (cur_line + 1)
@@ -160,16 +162,6 @@ local function get_chars(n)
    end
 end
 
-local function is_node_in(node, text)
-   while node ~= nil do
-      if node:type() == text then
-         return true
-      end
-      node = node:parent()
-   end
-   return false
-end
-
 local function handler(key, info, mode)
    if is_disabled(info) then
       return key
@@ -185,18 +177,16 @@ local function handler(key, info, mode)
          local node = vim.treesitter.get_node()
 
          if node ~= nil then
-            if is_node_in(node, "macro_invocation") then
-               -- If tag not close with `/`
-               if pair:sub(1, 1) ~= "/" then
-                  -- Get current node text
+            if node:type() == "open_tag" then
+               -- That mean does not have close tag
+               if node:parent():next_sibling():type() == "ERROR" then
                   local text = vim.treesitter.get_node_text(node, 0)
-
-                  -- Parse text to get the tag
                   local tag = text:match("<%s*(%w+)")
-
-                  if tag ~= nil then
-                     return "></" .. tag .. string.rep("<Left>", tag:len() + 2)
-                  end
+                  return fly_to(">")
+                     .. "</"
+                     .. tag
+                     .. ">"
+                     .. string.rep("<Left>", tag:len() + 3)
                end
             end
          end
