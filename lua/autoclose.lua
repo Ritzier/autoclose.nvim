@@ -171,13 +171,11 @@ local function handler(key, info, mode)
    if vim.bo.filetype == "rust" then
       -- Rust rstml autotag
       if info.escape and key == ">" then
-         -- If node in `macro_invocation`
          local node = vim.treesitter.get_node()
 
          if node ~= nil then
             if node:type() == "open_tag" then
-               -- That mean does not have close tag
-               if node:parent():next_sibling():type() == "ERROR" then
+               if node:next_sibling():type() ~= "close_tag" then
                   local text = vim.treesitter.get_node_text(node, 0)
                   local tag = text:match("<%s*(%w+)")
                   return fly_to(">")
@@ -186,10 +184,10 @@ local function handler(key, info, mode)
                      .. ">"
                      .. string.rep("<Left>", tag:len() + 3)
                end
-            else
-               return fly_to(">")
             end
          end
+
+         return fly_to(">")
       end
 
       if key == "<CR>" and get_chars(-1) == ">" and get_chars(2) == "</" then
