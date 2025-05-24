@@ -115,35 +115,33 @@ local function fly_to(key)
    -- Find current line position
    local current_line = vim.api.nvim_get_current_line()
    local after_cursor = current_line:sub(cur_col + 1)
+   local pos = after_cursor:find(pesc_key, 1, true)
 
-   -- Check current line
-   local first_close = after_cursor:match(pesc_key)
-   if first_close then
-      local pos = after_cursor:find(pesc_key)
-      if first_close == key then
-         return "<ESC>:call cursor("
-            .. cur_line
-            .. ", "
-            .. (pos + cur_col)
-            .. ")<CR>a"
-      end
+   -- If find pos in current line
+   if pos then
+      local target_col = cur_col + pos
+      return "<ESC>:call cursor(" .. cur_line .. "," .. target_col .. ")<CR>a"
    end
 
    -- Check next line
-   local next_line =
-      vim.api.nvim_buf_get_lines(0, cur_line, cur_line + 1, false)[1]
-   if next_line then
-      first_close = next_line:match(pesc_key)
-      if first_close then
-         local pos = next_line:find(pesc_key)
-         if first_close == key then
+   local bufnr = 0
+   local total_lines = vim.api.nvim_buf_line_count(bufnr)
+   local line_idx = cur_line -- Start searching from the next line (1-based)
+
+   while line_idx < total_lines do
+      local line =
+         vim.api.nvim_buf_get_lines(bufnr, line_idx, line_idx + 1, false)[1]
+      if line then
+         local found_col = line:find(pesc_key, 1, true)
+         if found_col then
             return "<ESC>:call cursor("
-               .. (cur_line + 1)
-               .. ", "
-               .. pos
+               .. (line_idx + 1)
+               .. ","
+               .. found_col
                .. ")<CR>a"
          end
       end
+      line_idx = line_idx + 1
    end
 
    return key
@@ -188,6 +186,8 @@ local function handler(key, info, mode)
                      .. ">"
                      .. string.rep("<Left>", tag:len() + 3)
                end
+            else
+               return fly_to(">")
             end
          end
       end
