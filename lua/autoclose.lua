@@ -174,15 +174,35 @@ local function handler(key, info, mode)
          local node = vim.treesitter.get_node()
 
          if node ~= nil then
+            local current_text = vim.treesitter.get_node_text(node, 0)
+
             if node:type() == "open_tag" then
-               if node:next_sibling():type() ~= "close_tag" then
-                  local text = vim.treesitter.get_node_text(node, 0)
-                  local tag = text:match("<%s*(%w+)")
-                  return fly_to(">")
-                     .. "</"
-                     .. tag
-                     .. ">"
-                     .. string.rep("<Left>", tag:len() + 3)
+               local sibling_node = node:next_sibling()
+               if sibling_node ~= nil then
+                  local sibling_type = sibling_node:type()
+                  if sibling_type ~= "close_tag" then
+                     local text = vim.treesitter.get_node_text(node, 0)
+                     local tag = text:match("<%s*(%w+)")
+                     return fly_to(">")
+                        .. "</"
+                        .. tag
+                        .. ">"
+                        .. string.rep("<Left>", tag:len() + 3)
+                  elseif sibling_type == "close_tag" then
+                     local text = vim.treesitter.get_node_text(node, 0)
+                     local tag = text:match("<%s*(%w+)")
+                     -- sibling
+                     local sibling_text =
+                        vim.treesitter.get_node_text(sibling_node, 0)
+                     local sibling_tag = sibling_text:match("</%s*(%w+)")
+                     if tag ~= sibling_tag then
+                        return fly_to(">")
+                           .. "</"
+                           .. tag
+                           .. ">"
+                           .. string.rep("<Left>", tag:len() + 3)
+                     end
+                  end
                end
             end
          end
